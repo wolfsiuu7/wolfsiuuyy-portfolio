@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type SyntheticEvent, type MouseEvent as ReactMouseEvent } from 'react';
+import { useState, useEffect, useRef, type SyntheticEvent, type FormEvent, type MouseEvent as ReactMouseEvent } from 'react';
 import {
   Play,
   X,
@@ -6,8 +6,6 @@ import {
   ArrowUpRight,
   Mail,
   Copy,
-  Camera,
-  RotateCcw,
   Aperture,
   AtSign,
   Clapperboard,
@@ -15,7 +13,8 @@ import {
   Clock,
   ChevronRight,
   ChevronDown,
-  Upload,
+  Star,
+  MessageSquare,
 } from 'lucide-react';
 
 // The exact, unedited profile picture — hosted by Wolf Siuu on Imgur (album tCUomZe).
@@ -79,14 +78,11 @@ export default function App() {
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState("");
   const heroRef = useRef<HTMLDivElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [avatar, setAvatar] = useState<string>(() => {
-    try {
-      return localStorage.getItem("wolf_avatar_v1") || DEFAULT_AVATAR;
-    } catch {
-      return DEFAULT_AVATAR;
-    }
-  });
+  const [reviewName, setReviewName] = useState("");
+  const [reviewRole, setReviewRole] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewSent, setReviewSent] = useState(false);
 
   // Cascade through mirrors until one loads: Imgur -> Imgur (hi-res) -> X CDN -> proxy -> bundled.
   const handleAvatarError = (e: SyntheticEvent<HTMLImageElement>) => {
@@ -106,46 +102,6 @@ export default function App() {
     window.setTimeout(() => setShowToast(false), 2600);
   };
 
-  const pickAvatar = () => fileRef.current?.click();
-
-  const onAvatarFile = (file?: File) => {
-    if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const size = 512;
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        const min = Math.min(img.width, img.height);
-        ctx.drawImage(img, (img.width - min) / 2, (img.height - min) / 2, min, min, 0, 0, size, size);
-        const data = canvas.toDataURL("image/jpeg", 0.92);
-        setAvatar(data);
-        try {
-          localStorage.setItem("wolf_avatar_v1", data);
-          flash("PROFILE PHOTO UPDATED — YOUR EXACT IMAGE, SAVED ON THIS DEVICE");
-        } catch {
-          flash("PROFILE PHOTO UPDATED FOR THIS SESSION");
-        }
-      };
-      img.src = String(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const resetAvatar = () => {
-    try {
-      localStorage.removeItem("wolf_avatar_v1");
-    } catch {
-      /* ignore */
-    }
-    setAvatar(DEFAULT_AVATAR);
-    flash("PROFILE PHOTO RESET TO ORIGINAL ARTWORK");
-  };
-
   // Pointer parallax for the hero showcase.
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const onHeroMove = (e: ReactMouseEvent<HTMLElement>) => {
@@ -153,65 +109,6 @@ export default function App() {
     setTilt({ x: (e.clientX - r.left) / r.width - 0.5, y: (e.clientY - r.top) / r.height - 0.5 });
   };
 
-  const [dragging, setDragging] = useState(false);
-  const dragDepth = useRef(0);
-
-  // Paste an image anywhere (Ctrl+V / Cmd+V) -> becomes the profile photo.
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith("image/")) {
-          const f = items[i].getAsFile();
-          if (f) {
-            e.preventDefault();
-            onAvatarFile(f);
-          }
-          return;
-        }
-      }
-    };
-    window.addEventListener("paste", onPaste);
-    return () => window.removeEventListener("paste", onPaste);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Drag & drop an image anywhere on the page -> becomes the profile photo.
-  useEffect(() => {
-    const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer?.types || []).includes("Files");
-    const onDragEnter = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      dragDepth.current += 1;
-      setDragging(true);
-    };
-    const onDragLeave = () => {
-      dragDepth.current = Math.max(0, dragDepth.current - 1);
-      if (dragDepth.current === 0) setDragging(false);
-    };
-    const onDragOver = (e: DragEvent) => {
-      if (hasFiles(e)) e.preventDefault();
-    };
-    const onDrop = (e: DragEvent) => {
-      if (!e.dataTransfer?.files?.length) return;
-      e.preventDefault();
-      dragDepth.current = 0;
-      setDragging(false);
-      const f = Array.from(e.dataTransfer.files).find(x => x.type.startsWith("image/"));
-      if (f) onAvatarFile(f);
-    };
-    window.addEventListener("dragenter", onDragEnter);
-    window.addEventListener("dragleave", onDragLeave);
-    window.addEventListener("dragover", onDragOver);
-    window.addEventListener("drop", onDrop);
-    return () => {
-      window.removeEventListener("dragenter", onDragEnter);
-      window.removeEventListener("dragleave", onDragLeave);
-      window.removeEventListener("dragover", onDragOver);
-      window.removeEventListener("drop", onDrop);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     document.documentElement.style.scrollBehavior = "smooth";
@@ -243,6 +140,25 @@ export default function App() {
     flash("EMAIL COPIED — adam.elfidh7@gmail.com");
   };
 
+  const submitReview = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!reviewName.trim() || !reviewText.trim()) return;
+
+    const subject = encodeURIComponent(`Portfolio Review from ${reviewName.trim()}`);
+    const body = encodeURIComponent(
+      `Name: ${reviewName.trim()}\n` +
+      `Role / company: ${reviewRole.trim() || "Not provided"}\n` +
+      `Rating: ${reviewRating}/5\n\n` +
+      `Review:\n${reviewText.trim()}`
+    );
+
+    setReviewSent(true);
+    flash("THANK YOU — OPENING YOUR MAIL APP TO SEND THE REVIEW");
+    window.setTimeout(() => {
+      window.location.href = `mailto:adam.elfidh7@gmail.com?subject=${subject}&body=${body}`;
+    }, 450);
+  };
+
   return (
     <div id="top" className="min-h-screen bg-[#04060C] text-[#E9EEFC] selection:bg-[#1E2C86] selection:text-[#E9EEFC] antialiased overflow-x-hidden">
       <style>{`
@@ -272,17 +188,6 @@ export default function App() {
         .float-y{animation:floatY 6s ease-in-out infinite}
       `}</style>
 
-      {/* Drag & drop overlay */}
-      {dragging && (
-        <div className="fixed inset-0 z-[95] bg-[#04060C]/90 backdrop-blur-sm flex items-center justify-center pointer-events-none p-6">
-          <div className="border-2 border-dashed border-[#9DB1FF] rounded-[24px] px-10 py-8 text-center bg-[#0A1128]/70">
-            <Upload className="mx-auto mb-3 text-[#9DB1FF]" size={28} aria-hidden="true" />
-            <div className="bebas text-4xl md:text-5xl text-[#9DB1FF] tracking-wide">DROP TO SET PROFILE PHOTO</div>
-            <div className="mono text-[11px] tracking-widest text-[#E9EEFC]/60 mt-3">RELEASE ANYWHERE ON THE PAGE — APPLIES INSTANTLY</div>
-          </div>
-        </div>
-      )}
-
       {/* Toast */}
       <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] mono text-xs tracking-widest px-4 py-2 bg-[#E9EEFC] text-[#0A1128] rounded-full transition-all duration-500 max-w-[92vw] text-center ${showToast ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
         {toastMsg}
@@ -293,24 +198,15 @@ export default function App() {
         <div className="mx-auto max-w-[1600px] px-6 md:px-10 h-[64px] flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={pickAvatar}
-                title="Change profile photo"
-                aria-label="Change profile photo"
-                className="relative group shrink-0 rounded-full cursor-pointer"
-              >
+              <a href="#top" aria-label="Wolf Siuu - back to top" className="relative shrink-0 rounded-full">
                 <img
-                  src={avatar}
+                  src={DEFAULT_AVATAR}
                   alt="Wolf Siuu profile picture"
                   onError={handleAvatarError}
-                  className="w-10 h-10 object-cover ring-1 ring-[#E9EEFC]/25 group-hover:ring-2 group-hover:ring-[#9DB1FF] transition duration-300"
+                  className="w-10 h-10 object-cover ring-1 ring-[#E9EEFC]/25"
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#9DB1FF] border-2 border-[#04060C]" title="Online" />
-                <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[115%] mono text-[9px] tracking-widest px-2 py-1 rounded bg-[#E9EEFC] text-[#0A1128] opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50">
-                  CHANGE PHOTO
-                </span>
-              </button>
+              </a>
               <a href="#top" className="mono text-[11px] tracking-[0.2em] hover:text-[#9DB1FF] transition">WOLF SIUU ©2026</a>
             </div>
             <div className="hidden md:flex items-center gap-6 mono text-[11px] tracking-widest text-[#E9EEFC]/60">
@@ -318,6 +214,7 @@ export default function App() {
               <a href="#services" className="hover:text-[#E9EEFC] transition">SERVICES</a>
               <a href="#about" className="hover:text-[#E9EEFC] transition">ABOUT</a>
               <a href="#process" className="hover:text-[#E9EEFC] transition">PROCESS</a>
+              <a href="#reviews" className="hover:text-[#E9EEFC] transition">LEAVE REVIEW</a>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -340,6 +237,7 @@ export default function App() {
             <a onClick={() => setMobileMenu(false)} href="#work">WORK</a>
             <a onClick={() => setMobileMenu(false)} href="#services">SERVICES</a>
             <a onClick={() => setMobileMenu(false)} href="#about">ABOUT</a>
+             <a onClick={() => setMobileMenu(false)} href="#reviews">LEAVE REVIEW</a>
             <a onClick={() => setMobileMenu(false)} href="#contact">CONTACT</a>
           </div>
         )}
@@ -463,23 +361,14 @@ export default function App() {
                   </svg>
                 </div>
                 {/* the photo */}
-                <button
-                  type="button"
-                  onClick={pickAvatar}
-                  title="Change profile photo"
-                  className="relative block w-full h-full rounded-full overflow-hidden ring-1 ring-[#E9EEFC]/20 group cursor-pointer"
-                >
+                <div className="relative block w-full h-full rounded-full overflow-hidden ring-1 ring-[#E9EEFC]/20">
                   <img
-                    src={avatar}
+                    src={DEFAULT_AVATAR}
                     alt="Wolf Siuu — video editor portrait"
                     onError={handleAvatarError}
-                    className="w-full h-full object-cover group-hover:scale-[1.04] transition duration-700"
+                    className="w-full h-full object-cover"
                   />
-                  <span className="absolute inset-0 rounded-full bg-[#04060C]/0 group-hover:bg-[#04060C]/35 transition" />
-                  <span className="absolute inset-x-0 bottom-0 mono text-[9px] tracking-widest text-[#E9EEFC] bg-[#04060C]/75 backdrop-blur py-2 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1.5">
-                    <Camera size={10} aria-hidden="true" /> CHANGE PHOTO
-                  </span>
-                </button>
+                </div>
                 {/* floating chips */}
                 <div className="absolute -right-3 top-8 float-y mono text-[10px] tracking-widest px-3.5 py-2 rounded-full bg-[#0A1128]/90 border border-[#9DB1FF]/30 text-[#9DB1FF] flex items-center gap-2 backdrop-blur">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> AVAILABLE FOR WORK
@@ -524,24 +413,13 @@ export default function App() {
           <div className="mono text-[11px] tracking-[0.3em] text-[#E9EEFC]/40 mb-6">ABOUT ME — [02]</div>
           <h2 className="bebas text-[14vw] lg:text-[7vw] leading-[0.85]">NOT A<br />TEMPLATE<br />GUY.</h2>
           <div className="mt-8 flex gap-4">
-            <button type="button" onClick={pickAvatar} title="Change profile photo" className="shrink-0 rounded-full cursor-pointer group">
-              <img src={avatar} alt="Wolf Siuu" onError={handleAvatarError} className="w-20 h-20 object-cover ring-2 ring-[#1E2C86] ring-offset-2 ring-offset-[#04060C] group-hover:ring-[#9DB1FF] transition" />
-            </button>
+            <div className="shrink-0 rounded-full">
+              <img src={DEFAULT_AVATAR} alt="Wolf Siuu" onError={handleAvatarError} className="w-20 h-20 object-cover ring-2 ring-[#1E2C86] ring-offset-2 ring-offset-[#04060C]" />
+            </div>
             <div className="mono text-[11px] leading-[1.6] text-[#E9EEFC]/60 max-w-[28ch]">
               WOLF SIUU — Video editor obsessed with pacing. Based in Morocco, working with creators & brands worldwide.
               <br /><br />
               <a href="https://www.instagram.com/wolf.siuu7/" target="_blank" rel="noopener noreferrer" className="underline text-[#E9EEFC] hover:text-[#9DB1FF]">IG: @wolf.siuu7</a> • <a href="https://x.com/wolfsiuu7" target="_blank" rel="noopener noreferrer" className="underline text-[#E9EEFC] hover:text-[#9DB1FF]">X: @wolfsiuu7</a>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" onClick={pickAvatar} className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full border border-[#E9EEFC]/15 hover:border-[#9DB1FF] hover:text-[#9DB1FF] transition cursor-pointer flex items-center gap-1.5">
-                  <Camera size={11} aria-hidden="true" /> CHANGE PHOTO
-                </button>
-                <button type="button" onClick={resetAvatar} className="mono text-[10px] tracking-widest px-3 py-1.5 rounded-full border border-[#E9EEFC]/10 text-[#E9EEFC]/50 hover:text-[#E9EEFC] transition cursor-pointer flex items-center gap-1.5">
-                  <RotateCcw size={11} aria-hidden="true" /> RESET
-                </button>
-              </div>
-              <div className="mt-3 mono text-[10px] leading-[1.7] text-[#E9EEFC]/35">
-                TIP: copy this image &amp; press CTRL+V anywhere on the page, or drag &amp; drop it here — it becomes your profile photo instantly, unedited.
-              </div>
             </div>
           </div>
         </div>
@@ -701,6 +579,117 @@ export default function App() {
         </div>
       </section>
 
+      {/* Leave a review */}
+      <section id="reviews" className="bg-[#060B1C] border-t border-[#E9EEFC]/10 py-20 md:py-28">
+        <div className="mx-auto max-w-[1600px] px-6 md:px-10 grid lg:grid-cols-[0.8fr_1.2fr] gap-12 lg:gap-20 items-start">
+          <div data-reveal>
+            <div className="mono text-[11px] tracking-[0.3em] text-[#9DB1FF] mb-6">CLIENT FEEDBACK - [04]</div>
+            <h2 className="bebas text-[14vw] lg:text-[7vw] leading-[0.85]">LEAVE A<br />REVIEW.</h2>
+            <p className="mt-7 max-w-[34ch] text-[16px] leading-[1.6] text-[#E9EEFC]/65">
+              Worked with Wolf Siuu? Your honest feedback helps future clients understand what it is like to create together.
+            </p>
+            <div className="mt-8 flex items-center gap-3 mono text-[11px] tracking-wide text-[#E9EEFC]/45">
+              <MessageSquare size={16} className="text-[#9DB1FF]" aria-hidden="true" />
+              REVIEWS ARE SENT DIRECTLY TO WOLF FOR APPROVAL.
+            </div>
+          </div>
+
+          <form onSubmit={submitReview} data-reveal className="rounded-[24px] border border-[#E9EEFC]/10 bg-[#0A1128] p-6 sm:p-8 md:p-10">
+            {reviewSent ? (
+              <div className="min-h-[310px] flex flex-col justify-center">
+                <div className="w-12 h-12 rounded-full bg-[#1E2C86] flex items-center justify-center mb-6">
+                  <MessageSquare size={20} aria-hidden="true" />
+                </div>
+                <h3 className="bebas text-5xl leading-none">THANK YOU.</h3>
+                <p className="mt-4 max-w-[38ch] text-[15px] leading-[1.6] text-[#E9EEFC]/65">
+                  Your review has been prepared in your email app and will be sent directly to Wolf Siuu for approval.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReviewSent(false);
+                    setReviewName("");
+                    setReviewRole("");
+                    setReviewText("");
+                    setReviewRating(5);
+                  }}
+                  className="mt-7 mono text-[11px] tracking-widest self-start px-5 py-3 rounded-full border border-[#E9EEFC]/20 hover:border-[#9DB1FF] hover:text-[#9DB1FF] transition cursor-pointer"
+                >
+                  WRITE ANOTHER REVIEW
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap justify-between gap-5 pb-7 border-b border-[#E9EEFC]/10">
+                  <div>
+                    <div className="mono text-[10px] tracking-[0.22em] text-[#E9EEFC]/40">YOUR EXPERIENCE</div>
+                    <h3 className="mt-2 text-xl font-bold tracking-tight">How was it working together?</h3>
+                  </div>
+                  <div className="flex items-center gap-1" role="radiogroup" aria-label="Rating">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setReviewRating(value)}
+                        aria-label={`${value} star${value > 1 ? "s" : ""}`}
+                        aria-pressed={reviewRating === value}
+                        className="p-1 cursor-pointer"
+                      >
+                        <Star size={22} className={value <= reviewRating ? "fill-[#9DB1FF] text-[#9DB1FF]" : "text-[#E9EEFC]/20"} aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-7 grid sm:grid-cols-2 gap-5">
+                  <label className="block">
+                    <span className="mono text-[10px] tracking-widest text-[#E9EEFC]/45">YOUR NAME *</span>
+                    <input
+                      value={reviewName}
+                      onChange={(e) => setReviewName(e.target.value)}
+                      required
+                      autoComplete="name"
+                      placeholder="Your name"
+                      className="mt-2 w-full bg-[#04060C] border border-[#E9EEFC]/10 focus:border-[#9DB1FF] outline-none rounded-xl px-4 py-3.5 text-sm placeholder:text-[#E9EEFC]/25 transition"
+                    />
+                  </label>
+                  <label className="block">
+                    <span className="mono text-[10px] tracking-widest text-[#E9EEFC]/45">ROLE / COMPANY</span>
+                    <input
+                      value={reviewRole}
+                      onChange={(e) => setReviewRole(e.target.value)}
+                      placeholder="e.g. Content creator"
+                      className="mt-2 w-full bg-[#04060C] border border-[#E9EEFC]/10 focus:border-[#9DB1FF] outline-none rounded-xl px-4 py-3.5 text-sm placeholder:text-[#E9EEFC]/25 transition"
+                    />
+                  </label>
+                </div>
+
+                <label className="block mt-5">
+                  <span className="mono text-[10px] tracking-widest text-[#E9EEFC]/45">YOUR REVIEW *</span>
+                  <textarea
+                    value={reviewText}
+                    onChange={(e) => setReviewText(e.target.value)}
+                    required
+                    rows={5}
+                    placeholder="Tell others about your experience..."
+                    className="mt-2 w-full resize-y bg-[#04060C] border border-[#E9EEFC]/10 focus:border-[#9DB1FF] outline-none rounded-xl px-4 py-3.5 text-sm leading-[1.6] placeholder:text-[#E9EEFC]/25 transition"
+                  />
+                </label>
+
+                <div className="mt-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <p className="mono text-[10px] leading-[1.6] tracking-wide text-[#E9EEFC]/35 max-w-[38ch]">
+                    Submitting opens your email app with the review addressed to Wolf Siuu.
+                  </p>
+                  <button type="submit" className="group mono text-[11px] tracking-widest px-6 py-3.5 rounded-full bg-[#E9EEFC] text-[#0A1128] hover:bg-[#9DB1FF] transition flex items-center justify-center gap-2 cursor-pointer shrink-0">
+                    SEND REVIEW <ArrowRight size={13} className="group-hover:translate-x-1 transition" aria-hidden="true" />
+                  </button>
+                </div>
+              </>
+            )}
+          </form>
+        </div>
+      </section>
+
       {/* Contact */}
       <section id="contact" className="relative overflow-hidden bg-[#0E1745] text-[#E9EEFC] rounded-t-[32px] md:rounded-t-[56px]">
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(60%_50%_at_20%_0%,#1E2C8655,transparent),radial-gradient(50%_40%_at_90%_100%,#1E2C8644,transparent)]" />
@@ -808,18 +797,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        aria-hidden="true"
-        onChange={e => {
-          onAvatarFile(e.target.files?.[0]);
-          e.target.value = "";
-        }}
-      />
 
       <style>{`@keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
     </div>
