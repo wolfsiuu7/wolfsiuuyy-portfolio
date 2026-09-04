@@ -293,7 +293,7 @@ function WorkCard({
       data-glow-strong
       className={`group relative bg-[#0A1128] p-3 text-left cursor-pointer overflow-hidden rounded-[20px] border border-transparent hover:border-[#9DB1FF]/20 hover:shadow-[0_0_40px_rgba(30,44,134,0.18),0_0_0_1px_rgba(157,177,255,0.12)] transition-all duration-500 ${index === 0 ? "md:col-span-2" : ""}`}
     >
-      <div className={`relative overflow-hidden rounded-[16px] bg-[#04060C] ${index === 0 ? "aspect-[16/9]" : "aspect-[16/10]"}`}>
+      <div className={`relative overflow-hidden rounded-[16px] bg-[#04060C] mx-auto w-full ${index === 0 ? "aspect-[16/9] max-w-[860px]" : "aspect-[16/10] max-w-[560px]"}`}>
         {/* thumb */}
         <img
           ref={imgRef}
@@ -396,6 +396,8 @@ export default function App() {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [heroArtHover, setHeroArtHover] = useState(false);
   const [transition, setTransition] = useState<{ active: boolean; label: string; target: string | null }>({ active: false, label: "", target: null });
+  const [isLoading, setIsLoading] = useState(true);
+  const [loaderLeaving, setLoaderLeaving] = useState(false);
 
   const handleAvatarError = (e: SyntheticEvent<HTMLImageElement>) => {
     const t = e.currentTarget;
@@ -464,6 +466,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const hold = reduced ? 450 : 1750;
+    const exit = reduced ? 80 : 520;
+    const startExit = window.setTimeout(() => setLoaderLeaving(true), hold);
+    const finish = window.setTimeout(() => setIsLoading(false), hold + exit);
+    return () => {
+      window.clearTimeout(startExit);
+      window.clearTimeout(finish);
+    };
+  }, []);
+
+  useEffect(() => {
     const els = Array.from(document.querySelectorAll("[data-reveal]"));
     if (!("IntersectionObserver" in window) || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       els.forEach((el) => el.classList.add("is-visible"));
@@ -501,6 +515,37 @@ export default function App() {
         <div className="atmos-orb atmos-orb-secondary" />
         <div className="atmos-noise absolute inset-0" />
       </div>
+
+      {/* Initial cinematic loader */}
+      {isLoading && (
+        <div
+          className={`fixed inset-0 z-[120] bg-[#04060C] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${loaderLeaving ? "opacity-0 scale-[1.015]" : "opacity-100 scale-100"}`}
+          aria-live="polite"
+          aria-label="Loading Wolf Siuu portfolio"
+        >
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#E9EEFC08_1px,transparent_1px),linear-gradient(to_bottom,#E9EEFC08_1px,transparent_1px)] bg-[size:72px_72px] loader-grid" />
+          <div className="absolute top-1/2 left-1/2 w-[620px] h-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[115px] bg-[radial-gradient(circle,rgba(233,238,252,0.18),rgba(157,177,255,0.11)_28%,rgba(30,44,134,0.06)_48%,transparent_76%)] loader-bloom" />
+          <div className="absolute top-[47%] left-1/2 w-[360px] h-[360px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#9DB1FF]/10 loader-orbit" />
+          <div className="absolute top-[47%] left-1/2 w-[510px] h-[510px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-[#E9EEFC]/[0.06] loader-orbit-reverse" />
+          <div className="absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[#9DB1FF]/75 to-transparent loader-scan" />
+          <div className="absolute inset-x-0 top-[calc(50%+18px)] h-px bg-gradient-to-r from-transparent via-[#E9EEFC]/20 to-transparent loader-scan loader-scan-delay" />
+
+          <div className="relative z-10 h-full flex items-center justify-center px-6">
+            <div className="w-full max-w-[560px] text-center">
+              <div className="mono text-[10px] tracking-[0.45em] text-[#9DB1FF]/80 mb-5 loader-kicker">
+                INITIALIZING SHOWREEL<span className="loader-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span>
+              </div>
+              <div className="mt-6 mx-auto h-px w-full max-w-[420px] bg-[#E9EEFC]/10 overflow-hidden rounded-full loader-track">
+                <div className="h-full bg-gradient-to-r from-transparent via-[#E9EEFC] to-[#9DB1FF] loader-progress" />
+              </div>
+              <div className="mt-5 flex items-center justify-center gap-3 mono text-[10px] tracking-[0.25em] text-[#E9EEFC]/45 loader-status">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#9DB1FF] loader-dot" />
+                LOADING<span className="loader-dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span><span>.</span></span> CUT / COLOR / MOTION / RENDER
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Section transition overlay - editing software inspired */}
       <div
@@ -556,6 +601,7 @@ export default function App() {
           .float-y{animation:none}
           .grid-shift{animation:none}
           .atmos-grid,.atmos-orb{animation:none}
+          .loader-grid,.loader-bloom,.loader-scan,.loader-progress,.loader-dot,.loader-kicker,.loader-title-wrap,.loader-title-letter,.loader-status,.loader-track,.loader-orbit,.loader-orbit-reverse,.loader-dots span{animation:none!important;opacity:1!important;transform:none!important}
         }
         @keyframes heroUp{from{opacity:0;transform:translateY(42px)}to{opacity:1;transform:translateY(0)}}
         @keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
@@ -571,6 +617,33 @@ export default function App() {
         @keyframes atmosBreatheSoft{0%,100%{opacity:.12;transform:translate3d(0,0,0) scale(1)}50%{opacity:.2;transform:translate3d(8px,-10px,0) scale(1.05)}}
         @keyframes atmosFloat{0%,100%{margin-top:0;margin-right:0}50%{margin-top:10px;margin-right:-8px}}
         @keyframes atmosFloatSoft{0%,100%{margin-bottom:0;margin-left:0}50%{margin-bottom:-12px;margin-left:10px}}
+        @keyframes loaderGrid{0%{transform:translate3d(0,0,0);opacity:.24}100%{transform:translate3d(72px,72px,0);opacity:.17}}
+        @keyframes loaderBloom{0%,100%{opacity:.48;transform:translate(-50%,-50%) scale(.94)}45%{opacity:.86;transform:translate(-50%,-50%) scale(1.06)}70%{opacity:.62;transform:translate(-50%,-50%) scale(1)}}
+        @keyframes loaderScan{0%{transform:translateY(-120px) scaleX(.2);opacity:0}28%{opacity:.75}100%{transform:translateY(120px) scaleX(1.08);opacity:0}}
+        @keyframes loaderProgress{0%{transform:translateX(-112%) scaleX(.55);opacity:.35}38%{opacity:1}100%{transform:translateX(190%) scaleX(1.1);opacity:.35}}
+        @keyframes loaderFadeUp{0%{opacity:0;transform:translateY(18px);filter:blur(6px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}
+        @keyframes loaderLetter{0%{opacity:0;transform:translateY(26px) scale(.96);filter:blur(10px)}65%{opacity:1;filter:blur(0)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}
+        @keyframes loaderTrack{0%{opacity:0;transform:scaleX(.55)}100%{opacity:1;transform:scaleX(1)}}
+        @keyframes loaderStatus{0%{opacity:0;letter-spacing:.42em;transform:translateY(8px)}100%{opacity:1;letter-spacing:.25em;transform:translateY(0)}}
+        @keyframes loaderDot{0%,100%{opacity:.45;box-shadow:0 0 8px rgba(157,177,255,.45);transform:scale(.9)}50%{opacity:1;box-shadow:0 0 18px rgba(157,177,255,.9);transform:scale(1.16)}}
+        @keyframes loaderOrbit{0%{transform:translate(-50%,-50%) rotate(0deg) scale(.98);opacity:.16}50%{opacity:.28}100%{transform:translate(-50%,-50%) rotate(360deg) scale(1.02);opacity:.16}}
+        @keyframes loaderOrbitReverse{0%{transform:translate(-50%,-50%) rotate(360deg) scale(1.02);opacity:.12}50%{opacity:.2}100%{transform:translate(-50%,-50%) rotate(0deg) scale(.98);opacity:.12}}
+        @keyframes loaderDots{0%,20%{opacity:.18;transform:translateY(0)}45%{opacity:1;transform:translateY(-1px)}70%,100%{opacity:.18;transform:translateY(0)}}
+        .loader-grid{animation:loaderGrid 24s linear infinite}
+        .loader-bloom{animation:loaderBloom 3.8s ease-in-out infinite}
+        .loader-scan{animation:loaderScan 1.55s cubic-bezier(.16,1,.3,1) infinite}
+        .loader-scan-delay{animation-delay:.34s;opacity:.45}
+        .loader-orbit{animation:loaderOrbit 9s linear infinite}
+        .loader-orbit-reverse{animation:loaderOrbitReverse 15s linear infinite}
+        .loader-progress{width:48%;animation:loaderProgress 1.25s cubic-bezier(.16,1,.3,1) infinite;will-change:transform,opacity}
+        .loader-kicker{opacity:0;animation:loaderFadeUp .75s cubic-bezier(.16,1,.3,1) .08s forwards}
+        .loader-title-wrap{text-shadow:0 0 34px rgba(157,177,255,.18)}
+        .loader-title-letter{display:inline-block;opacity:0;animation:loaderLetter .82s cubic-bezier(.16,1,.3,1) forwards}
+        .loader-title-letter:nth-child(1){animation-delay:.18s}.loader-title-letter:nth-child(2){animation-delay:.23s}.loader-title-letter:nth-child(3){animation-delay:.28s}.loader-title-letter:nth-child(4){animation-delay:.33s}.loader-title-letter:nth-child(6){animation-delay:.42s}.loader-title-letter:nth-child(7){animation-delay:.47s}.loader-title-letter:nth-child(8){animation-delay:.52s}.loader-title-letter:nth-child(9){animation-delay:.57s}
+        .loader-track{opacity:0;transform-origin:center;animation:loaderTrack .7s cubic-bezier(.16,1,.3,1) .72s forwards}
+        .loader-status{opacity:0;animation:loaderStatus .7s cubic-bezier(.16,1,.3,1) .88s forwards}
+        .loader-dot{animation:loaderDot 1.1s ease-in-out infinite}
+        .loader-dots span{display:inline-block;animation:loaderDots 1.1s ease-in-out infinite}.loader-dots span:nth-child(2){animation-delay:.14s}.loader-dots span:nth-child(3){animation-delay:.28s}
         .hero-up{opacity:0;animation:heroUp .95s cubic-bezier(.16,1,0.3,1) forwards}
         .float-y{animation:floatY 6s ease-in-out infinite}
         .grid-shift{animation:gridShift 90s linear infinite}
@@ -618,7 +691,13 @@ export default function App() {
               <CurrentlyEditing />
             </div>
             <Magnetic strength={0.18} radius={200}>
-              <a href="#contact" onClick={(e) => handleNavClick(e, "#contact", "CONTACT")} data-glow-strong className="mono text-[11px] tracking-widest px-5 py-2.5 rounded-full bg-[#E9EEFC] text-[#0A1128] hover:bg-[#9DB1FF] transition font-medium flex items-center gap-2 group shine">
+              <a
+                href="https://mail.google.com/mail/?view=cm&fs=1&to=adam.elfidh7@gmail.com&su=Video%20Editing%20Hire%20Request&body=Hi%2C%20I%27m%20interested%20in%20hiring%20you%20for%20a%20video%20editing%20project.%20Here%20are%20the%20details%20of%20my%20project%3A"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-glow-strong
+                className="mono text-[11px] tracking-widest px-5 py-2.5 rounded-full bg-[#E9EEFC] text-[#0A1128] hover:bg-[#9DB1FF] transition font-medium flex items-center gap-2 group shine"
+              >
                 HIRE ME <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform duration-300" aria-hidden="true" />
               </a>
             </Magnetic>
@@ -739,6 +818,12 @@ export default function App() {
                     <span className="absolute inset-0 rounded-full bg-[#FF0000]/20 blur-[6px] opacity-0 group-hover:opacity-100 transition-opacity" />
                   </span>
                   YOUTUBE
+                </a>
+              </Magnetic>
+              <Magnetic strength={0.14} radius={180}>
+                <a href="https://www.tiktok.com/@wolf.siuu1" target="_blank" rel="noopener noreferrer" data-glow-strong className="mono text-[10px] tracking-widest px-4 py-2.5 rounded-full bg-[#0A1128] border border-[#E9EEFC]/10 hover:border-[#E9EEFC]/30 hover:text-white transition flex items-center gap-2 group">
+                  <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.321 5.562a5.122 5.122 0 0 1-3.309-1.217v9.692a6.06 6.06 0 0 1-6.07 6.065 6.06 6.06 0 0 1-6.065-6.07 6.06 6.06 0 0 1 6.07-6.065c.319 0 .633.03.942.084v3.13a2.926 2.926 0 1 0 2.012 2.786V1.954h2.994c.019 1.362.64 2.642 1.722 3.482.493.383 1.078.634 1.704.723z"/></svg>
+                  TIKTOK
                 </a>
               </Magnetic>
               <Magnetic strength={0.14} radius={180}>
@@ -1193,6 +1278,12 @@ export default function App() {
                 <Magnetic strength={0.14} radius={180} className="flex-1">
                   <a href="https://x.com/wolfsiuu7" target="_blank" rel="noopener noreferrer" data-glow-strong className="w-full mono text-[11px] tracking-widest py-3 rounded-full bg-[#1E2C86] text-[#E9EEFC] text-center hover:bg-[#2A3CA8] transition flex items-center justify-center gap-2 group">
                     <AtSign size={13} className="group-hover:translate-x-0.5 transition-transform" aria-hidden="true" /> X
+                  </a>
+                </Magnetic>
+                <Magnetic strength={0.14} radius={180} className="flex-1">
+                  <a href="https://www.tiktok.com/@wolf.siuu1" target="_blank" rel="noopener noreferrer" data-glow-strong className="w-full mono text-[11px] tracking-widest py-3 rounded-full bg-[#1E2C86] text-[#E9EEFC] text-center hover:bg-[#2A3CA8] transition flex items-center justify-center gap-2 group">
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.321 5.562a5.122 5.122 0 0 1-3.309-1.217v9.692a6.06 6.06 0 0 1-6.07 6.065 6.06 6.06 0 0 1-6.065-6.07 6.06 6.06 0 0 1 6.07-6.065c.319 0 .633.03.942.084v3.13a2.926 2.926 0 1 0 2.012 2.786V1.954h2.994c.019 1.362.64 2.642 1.722 3.482.493.383 1.078.634 1.704.723z"/></svg>
+                    TIKTOK
                   </a>
                 </Magnetic>
                 <Magnetic strength={0.14} radius={180} className="flex-1">
