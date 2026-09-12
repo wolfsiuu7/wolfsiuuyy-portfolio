@@ -80,6 +80,7 @@ const WORKS: Work[] = [
     tools: ["After Effects", "Data Viz", "Beat Sync"],
     duration: "00:31",
     year: "2025",
+<<<<<<< HEAD
   },
   {
     id: 4,
@@ -92,6 +93,8 @@ const WORKS: Work[] = [
     tools: ["Premiere Pro", "Captions & SFX", "Sound Design"],
     duration: "00:42",
     year: "2025",
+=======
+>>>>>>> a688ba7f87521813a96f05f89b60991b218debbb
   },
 ];
 
@@ -303,9 +306,15 @@ function WorkCard({
       onMouseLeave={onLeave}
       onClick={() => onOpen(work)}
       data-glow-strong
+<<<<<<< HEAD
       className="group relative flex h-full w-full flex-col text-left cursor-pointer overflow-hidden rounded-[16px] bg-[#0A1128] border border-[#E9EEFC]/10 hover:border-[#9DB1FF]/25 hover:shadow-[0_0_40px_rgba(30,44,134,0.18)] transition-all duration-500"
     >
       <div className="relative w-full aspect-video overflow-hidden bg-[#04060C]">
+=======
+      className={`group relative bg-[#0A1128] p-3 text-left cursor-pointer overflow-hidden rounded-[20px] border border-transparent hover:border-[#9DB1FF]/20 hover:shadow-[0_0_40px_rgba(30,44,134,0.18),0_0_0_1px_rgba(157,177,255,0.12)] transition-all duration-500 ${index === 0 ? "md:col-span-2" : ""}`}
+    >
+      <div className={`relative overflow-hidden rounded-[16px] bg-[#04060C] mx-auto w-full ${index === 0 ? "aspect-[16/9] max-w-[860px]" : "aspect-[16/10] max-w-[560px]"}`}>
+>>>>>>> a688ba7f87521813a96f05f89b60991b218debbb
         {/* thumb */}
         <img
           ref={imgRef}
@@ -338,7 +347,11 @@ function WorkCard({
         {/* top meta */}
         <div className="card-parallax absolute top-3 left-3 right-3 flex items-center justify-between will-change-transform transition-transform duration-500">
           <span className="mono text-[10px] px-2.5 py-1 rounded-full bg-[#04060C]/70 text-[#E9EEFC] backdrop-blur border border-[#E9EEFC]/10">
+<<<<<<< HEAD
             {String(index + 1).padStart(2, "0")} / {String(WORKS.length).padStart(2, "0")} • {work.duration}
+=======
+            {String(index + 1).padStart(2, "0")} / 03 • {work.duration}
+>>>>>>> a688ba7f87521813a96f05f89b60991b218debbb
           </span>
           <span className="mono text-[10px] px-2.5 py-1 rounded-full bg-[#E9EEFC] text-[#0A1128] flex items-center gap-1.5 font-medium">
             <Film size={11} aria-hidden="true" /> {work.year}
@@ -370,6 +383,7 @@ function WorkCard({
         </div>
       </div>
 
+<<<<<<< HEAD
       <div className="flex flex-1 flex-col justify-between gap-3 p-4">
         <h4 className="bebas text-xl md:text-2xl leading-tight tracking-wide truncate">{work.title}</h4>
         <div className="flex items-center justify-between gap-3">
@@ -378,6 +392,27 @@ function WorkCard({
           </span>
           <span className="mono text-[10px] tracking-widest text-[#E9EEFC]/35 shrink-0">{work.duration}</span>
         </div>
+=======
+      <div className="pt-4 pb-2 px-2 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h4 className="bebas text-2xl md:text-[26px] leading-none tracking-wide truncate">{work.title}</h4>
+            <span className="w-1 h-1 rounded-full bg-[#9DB1FF]/60 hidden sm:block" />
+            <span className="mono text-[10px] tracking-widest text-[#E9EEFC]/40 hidden sm:block">{work.duration}</span>
+          </div>
+          <div className="mono text-[10px] tracking-widest text-[#E9EEFC]/50 mt-1.5 truncate">{work.meta}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {work.tools.map((t) => (
+              <span key={t} className="mono text-[9px] tracking-widest px-2 py-1 rounded-full border border-[#E9EEFC]/10 bg-[#E9EEFC]/[0.03] text-[#E9EEFC]/60 group-hover:border-[#9DB1FF]/20 group-hover:text-[#E9EEFC]/80 transition-colors">
+                {t}
+              </span>
+            ))}
+          </div>
+        </div>
+        <span className="mono text-[10px] px-2.5 py-1 rounded-full border border-[#E9EEFC]/15 shrink-0 group-hover:border-[#9DB1FF]/30 group-hover:text-[#9DB1FF] transition-colors">
+          {work.tag}
+        </span>
+>>>>>>> a688ba7f87521813a96f05f89b60991b218debbb
       </div>
     </button>
   );
@@ -1036,6 +1071,7 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-6 py-10 border-y border-[#E9EEFC]/10">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#9DB1FF] animate-pulse shadow-[0_0_8px_rgba(157,177,255,0.7)]" />
+<<<<<<< HEAD
               <span className="mono text-[12px] tracking-[0.2em]">SELECTED WORK — {String(WORKS.length).padStart(2, "0")} EDITS • STREAMED FROM YOUTUBE</span>
             </div>
             <div className="flex items-center gap-3">
@@ -1045,6 +1081,17 @@ export default function App() {
                 CLICK ANY CARD TO PLAY
               </span>
             </div>
+=======
+              <span className="mono text-[12px] tracking-[0.2em]">SELECTED WORK — 03 EDITS • STREAMED FROM YOUTUBE</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <CurrentlyEditing />
+              <span className="hidden sm:flex mono text-[11px] tracking-widest px-4 py-2 rounded-full border border-[#E9EEFC]/15 items-center gap-2">
+                <Play size={10} fill="currentColor" aria-hidden="true" />
+                CLICK ANY CARD TO PLAY
+              </span>
+            </div>
+>>>>>>> a688ba7f87521813a96f05f89b60991b218debbb
           </div>
 
           <div data-reveal className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 items-stretch">
