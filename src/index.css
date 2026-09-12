@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+/* System cursor stays untouched - only ambient glow is added via CursorGlow component */
+@media (hover: hover) and (pointer: fine) {
+  html.has-custom-cursor,
+  html.has-custom-cursor * {
+    cursor: none !important;
+  }
+}
